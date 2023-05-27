@@ -33,13 +33,22 @@ func (d *database) GetBooks(page, limit int) ([]*model.Book, error) {
 	return data, nil
 }
 
-func (d *database) AddBook() {
-
+func (d *database) AddBook(book *model.Book) error {
+	sqlSentence := "INSERT INTO book(book_name,book_author,book_publish_time) " +
+		"VALUES(@name,@author,@time)"
+	
+	if _, err := d.db.Exec(sqlSentence, sql.Named("name", book.BookName),
+		sql.Named("author", book.BookAuthor), sql.Named("time",
+			book.BookPublishedTime)); err != nil {
+		return err
+	}
+	
+	return nil
 }
 
-func (d *database) DeleteBook(bookId int) error {
-	sqlSentence := fmt.Sprintf("DELETE FROM book WHERE book_id = %d", bookId)
-	if _, err := d.db.Exec(sqlSentence); err != nil {
+func (d *database) DeleteBook(book *model.Book) error {
+	sqlSentence := "DELETE FROM book WHERE book_id = @book_id"
+	if _, err := d.db.Exec(sqlSentence, sql.Named("book_id", book.BookId)); err != nil {
 		return errors.WithStack(err)
 	}
 	return nil

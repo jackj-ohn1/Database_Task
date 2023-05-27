@@ -32,8 +32,8 @@ func Router(db *sql.DB) *gin.Engine {
 	userRoute.GET("/borrow/history", userHandler.UserHistory)
 	
 	adminRoute := baseRoute.Group("/admin")
-	adminRoute.POST("/book")
-	adminRoute.DELETE("/book")
+	adminRoute.POST("/book", bookHandler.AddBook)
+	adminRoute.DELETE("/book", bookHandler.DeleteBook)
 	
 	return engine
 }

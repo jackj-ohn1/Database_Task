@@ -8,6 +8,18 @@ import (
 	"github.com/pkg/errors"
 )
 
+func (d *database) IsAdmin(userId string) (bool, error) {
+	sqlSentence := "SELECT is_admin FROM library_user WHERE user_id = @user_id"
+	row := d.db.QueryRow(sqlSentence, sql.Named("user_id", userId))
+	
+	var isAdmin bool
+	if err := row.Scan(&isAdmin); err != nil {
+		return false, errors.WithStack(err)
+	}
+	
+	return isAdmin, nil
+}
+
 func (d *database) UserHistory(borrow *model.Borrow) ([]*model.BorrowBook, error) {
 	sqlSentence := "SELECT borrow_id,borrow_time,should_return_time,return_time," +
 		"book.book_id,book_name,book_author,book_publish_time,book_used,user_id " +

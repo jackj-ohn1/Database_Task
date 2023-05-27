@@ -120,20 +120,18 @@ END;
 INSERT INTO
 	book(book_name, book_author)
 VALUES
-	('book_1','sewf,wefe'),
-	('book_2','fweef ,ew');
+	('book_1','author1'),
+	('book_2','author2');
 
 INSERT INTO
-	library_user(user_id, user_password)
+	library_user(user_id, user_password,is_admin)
 VALUES
-	('2021','2021'),
-	('2022','2022');
+	('2021','2021',0),
+	('2022','2022',0),
+	('2023','2023',1);
 	
 INSERT INTO
 	borrow(book_id, user_id)
 VALUES
 	(1000000,'2021'),
 	(1000001,'2022');
-	
-DELETE FROM borrow WHERE book_id = 1000000 AND user_id = '2021';
-DELETE FROM borrow WHERE book_id = 1000001 AND user_id = '2022';

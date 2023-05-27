@@ -10,4 +10,5 @@ var (
 	ErrInternalServerErr = errors.New("服务端出错")
 	ErrUsedBook          = errors.New("这本书已被借出")
 	ErrSpareBook         = errors.New("这本书尚未外借")
+	ErrNoPower           = errors.New("你无权进行操作")
 )

@@ -14,9 +14,11 @@ type Database interface {
 	UserLogin(user *model.User) error
 	ReturnBook(borrow *model.Borrow) error
 	UserHistory(borrow *model.Borrow) ([]*model.BorrowBook, error)
+	IsAdmin(userId string) (bool, error)
 	
 	GetBooks(page, limit int) ([]*model.Book, error)
-	DeleteBook(bookId int) error
+	AddBook(book *model.Book) error
+	DeleteBook(book *model.Book) error
 	LendBook(borrow *model.Borrow, borrowDay int) error
 }
 
