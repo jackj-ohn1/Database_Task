@@ -12,6 +12,12 @@ import (
 type Database interface {
 	UserRegister(user *model.User) error
 	UserLogin(user *model.User) error
+	ReturnBook(borrow *model.Borrow) error
+	UserHistory(borrow *model.Borrow) ([]*model.BorrowBook, error)
+	
+	GetBooks(page, limit int) ([]*model.Book, error)
+	DeleteBook(bookId int) error
+	LendBook(borrow *model.Borrow, borrowDay int) error
 }
 
 func NewDatabase(db *sql.DB) Database {

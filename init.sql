@@ -14,8 +14,6 @@ CREATE TABLE book(
 	
 	book_name VARCHAR(100) NOT NULL,
 	book_publish_time DATETIME2 DEFAULT NULL,
-	book_price FLOAT NOT NULL,
-	book_content VARCHAR(MAX),
 	book_used BIT CONSTRAINT book_status_check CHECK (book_used IN (0,1)) DEFAULT 0,
 	book_author VARCHAR(200) DEFAULT 'unknown'
 );
@@ -67,15 +65,31 @@ CREATE TABLE borrow(
 	ON UPDATE CASCADE
 );
 
+-- drop trigger book_insert_check
+-- CREATE TRIGGER book_insert_check ON borrow
+-- INSTEAD OF INSERT AS
+-- BEGIN
+--     DECLARE @book_id INT
+--     SELECT @book_id = book_id FROM inserted
+--
+--     DECLARE @book_used INT
+--     SELECT @book_used = book_used FROM book WHERE book_id = @book_id
+--     IF @book_used = 1
+--     BEGIN
+--         ROLLBACK TRANSACTION
+--     END
+-- END;
+
+
 -- 修改图书状态,增加用户已借图书数量 --
 CREATE TRIGGER book_status_update ON borrow
 	AFTER INSERT AS
 BEGIN
 	UPDATE book SET book_used = 1
-	WHERE (SELECT book_id FROM inserted) = book_id;
+	WHERE book_id IN (SELECT book_id FROM inserted);
 	
 	UPDATE library_user SET borrowed_book = borrowed_book + 1
-    WHERE (SELECT user_id FROM inserted) = user_id
+    WHERE user_id IN (SELECT user_id FROM inserted)
     AND borrowed_book < borrow_max;
 END;
 
@@ -83,43 +97,31 @@ CREATE TRIGGER delete_changed_update ON borrow
 	INSTEAD OF DELETE AS
 BEGIN
 	UPDATE borrow SET return_time = GETDATE()
-	WHERE (SELECT borrow_id FROM deleted) = borrow_id;
+	WHERE (SELECT TOP 1 borrow_id FROM deleted) = borrow_id;
 	
 	UPDATE book SET book_used = 0
-	WHERE (SELECT book_id FROM deleted) = book_id;
+	WHERE (SELECT TOP 1 book_id FROM deleted) = book_id;
 	
 	-- 还书时间超时,借书最大数量限制-1 --
 	UPDATE library_user SET borrow_max = borrow_max - 1
-	WHERE (SELECT user_id FROM deleted) = user_id
+	WHERE (SELECT TOP 1 user_id FROM deleted) = user_id
 	AND borrow_max > 1
-	AND (SELECT should_return_time FROM deleted) < GETDATE();
+	AND (SELECT TOP 1 should_return_time FROM deleted) < GETDATE();
 	
 	-- 按时还书,借书最大数量限制+1 --
 	UPDATE library_user SET borrow_max = borrow_max + 1
-	WHERE (SELECT user_id FROM deleted) = user_id
+	WHERE (SELECT TOP 1 user_id FROM deleted) = user_id
 	AND borrow_max < 10
-	AND (SELECT should_return_time FROM deleted) > GETDATE();
+	AND (SELECT TOP 1 should_return_time FROM deleted) > GETDATE();
 END;
 
 ---TEST CASE---
-INSERT INTO
-	author(author_name,author_age,author_description)
-VALUES
-	('john',18,'i am john'),
-	('tom',35,'i am tom');
 	
 INSERT INTO
-	book(book_name, book_price, book_content)
+	book(book_name, book_author)
 VALUES
-	('book_1',18.6,'this is book_1'),
-	('book_2',39,'this is book_2');
-	
-INSERT INTO
-	book_author(author_id, book_id)
-VALUES
-	(1000000,1000000),
-	(1000000,1000001),
-	(1000001,1000000);
+	('book_1','sewf,wefe'),
+	('book_2','fweef ,ew');
 
 INSERT INTO
 	library_user(user_id, user_password)
@@ -134,3 +136,4 @@ VALUES
 	(1000001,'2022');
 	
 DELETE FROM borrow WHERE book_id = 1000000 AND user_id = '2021';
+DELETE FROM borrow WHERE book_id = 1000001 AND user_id = '2022';
