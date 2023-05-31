@@ -26,7 +26,7 @@ func Router(db *sql.DB) *gin.Engine {
 	userRoute.POST("/borrow", bookHandler.LendBook)
 	
 	// curl -X DELETE -H "Content-Type:application/json" localhost:80/api/v1/library/user/book/borrow -d '{"borrow_id":1000004}'
-	userRoute.DELETE("/borrow", userHandler.ReturnBook)
+	userRoute.PUT("/borrow", userHandler.ReturnBook)
 	
 	// curl -X GET -H "Content-Type:application/json" localhost:80/api/v1/library/user/book/borrow/history -d '{"user_id":"2021"}'
 	userRoute.GET("/borrow/history", userHandler.UserHistory)
@@ -34,7 +34,7 @@ func Router(db *sql.DB) *gin.Engine {
 	
 	adminRoute := baseRoute.Group("/admin")
 	adminRoute.POST("/book", bookHandler.AddBook)
-	adminRoute.DELETE("/book", bookHandler.DeleteBook)
+	adminRoute.PUT("/book", bookHandler.DeleteBook)
 	
 	return engine
 }

@@ -55,18 +55,23 @@ func (d *database) DeleteBook(book *model.Book) error {
 }
 
 func (d *database) LendBook(borrow *model.Borrow, borrowDay int) error {
-	sqlSentence := "SELECT book_used,borrow_max,borrowed_book FROM book WHERE " +
-		"book_id=@book_id"
+	sqlSentence := "SELECT book_used FROM book WHERE book_id=@book_id"
 	row := d.db.QueryRow(sqlSentence, sql.Named("book_id", borrow.BookId))
 	
 	var used bool
 	var max, borrowed int
-	if err := row.Scan(&used, &max, &borrowed); err != nil {
+	if err := row.Scan(&used); err != nil {
 		return errors.WithStack(err)
 	}
 	
 	if used {
 		return errno.ErrUsedBook
+	}
+	
+	sqlSentence = "SELECT borrowed_book,borrow_max FROM library_user WHERE user_id = @user_id"
+	row = d.db.QueryRow(sqlSentence, sql.Named("user_id", borrow.UserId))
+	if err := row.Scan(&borrowed, &max); err != nil {
+		return errors.WithStack(err)
 	}
 	if borrowed >= max {
 		return errno.ErrNoLeftResource
