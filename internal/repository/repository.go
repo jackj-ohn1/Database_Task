@@ -14,6 +14,7 @@ type Database interface {
 	UserLogin(user *model.User) error
 	ReturnBook(borrow *model.Borrow) error
 	UserHistory(borrow *model.Borrow) ([]*model.BorrowBook, error)
+	BorrowedBook(user *model.User) ([]*model.BorrowBook, int, int, error)
 	IsAdmin(userId string) (bool, error)
 	
 	GetBooks(page, limit int) ([]*model.Book, error)

@@ -1,11 +1,11 @@
-IF NOT EXISTS(
-		SELECT name
-		FROM sys.databases
-		WHERE name = 'book_control'
-	)
-	BEGIN
-		CREATE DATABASE book_control;
-	END;
+-- IF NOT EXISTS(
+-- 		SELECT name
+-- 		FROM sys.databases
+-- 		WHERE name = 'book_control'
+-- 	)
+-- 	BEGIN
+-- 		CREATE DATABASE book_control;
+-- 	END;
 
 USE book_control;
 

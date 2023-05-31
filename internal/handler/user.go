@@ -112,23 +112,19 @@ func (u *userHandler) Login(c *gin.Context) {
 	resp.Success(c)
 }
 
-type userHistoryRequest struct {
-	UserId string `json:"user_id" binding:"required"`
-}
-
 func (u *userHandler) UserHistory(c *gin.Context) {
-	var req userHistoryRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	userId := c.Query("user_id")
+	if userId == "" {
 		resp := &internal.Response{
-			Message: err.Error(),
+			Message: errno.ErrWrongParams.Error(),
 			Code:    http.StatusBadRequest,
 		}
-		resp.SomeError(c, err)
+		resp.SomeError(c, errno.ErrWrongParams)
 		return
 	}
 	
 	data, err := u.database.UserHistory(&model.Borrow{
-		UserId: req.UserId,
+		UserId: userId,
 	})
 	if err != nil {
 		resp := &internal.Response{
@@ -186,6 +182,47 @@ func (u *userHandler) ReturnBook(c *gin.Context) {
 	resp := &internal.Response{
 		Message: "操作成功",
 		Code:    http.StatusOK,
+	}
+	resp.Success(c)
+}
+
+type userReservationResponse struct {
+	Data               []*model.BorrowBook `json:"data"`
+	MaxBorrow          int                 `json:"max_borrow"`
+	TimeOutReservation int                 `json:"time_out_reservation"`
+}
+
+func (u *userHandler) UserReservation(c *gin.Context) {
+	userId := c.Query("user_id")
+	if userId == "" {
+		resp := &internal.Response{
+			Message: errno.ErrWrongParams.Error(),
+			Code:    http.StatusBadRequest,
+		}
+		resp.SomeError(c, errno.ErrWrongParams)
+		return
+	}
+	
+	data, max, timeout, err := u.database.BorrowedBook(&model.User{
+		UserId: userId,
+	})
+	if err != nil {
+		resp := &internal.Response{
+			Message: errno.ErrInternalServerErr.Error(),
+			Code:    http.StatusInternalServerError,
+		}
+		resp.InternalError(c, err)
+		return
+	}
+	
+	resp := &internal.Response{
+		Message: "获取成功",
+		Code:    http.StatusOK,
+		Data: userReservationResponse{
+			Data:               data,
+			MaxBorrow:          max,
+			TimeOutReservation: timeout,
+		},
 	}
 	resp.Success(c)
 }

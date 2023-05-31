@@ -92,6 +92,13 @@ func (b *bookHandler) LendBook(c *gin.Context) {
 			}
 			resp.Success(c)
 			return
+		} else if errors.Is(errno.ErrNoLeftResource, err) {
+			resp := &internal.Response{
+				Message: err.Error(),
+				Code:    http.StatusOK,
+			}
+			resp.Success(c)
+			return
 		}
 		
 		resp := &internal.Response{

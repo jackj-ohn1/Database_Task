@@ -24,7 +24,7 @@ func (d *database) UserHistory(borrow *model.Borrow) ([]*model.BorrowBook, error
 	sqlSentence := "SELECT borrow_id,borrow_time,should_return_time,return_time," +
 		"book.book_id,book_name,book_author,book_publish_time,book_used,user_id " +
 		"FROM borrow JOIN book ON borrow.book_id = book.book_id " +
-		"AND borrow.user_id = @user_id"
+		"AND borrow.user_id = @user_id AND return_time IS NOT NULL"
 	
 	rows, err := d.db.Query(sqlSentence, sql.Named("user_id", borrow.UserId))
 	if err != nil {
@@ -99,4 +99,45 @@ func (d *database) ReturnBook(borrow *model.Borrow) error {
 	}
 	
 	return nil
+}
+
+func (d *database) BorrowedBook(user *model.User) ([]*model.BorrowBook, int, int, error) {
+	sqlSentence := "SELECT borrow_id,borrow_time,should_return_time,return_time," +
+		"book.book_id,book_name,book_author,book_publish_time,book_used,user_id " +
+		"FROM borrow JOIN book ON borrow.book_id = book.book_id " +
+		"AND borrow.user_id = @user_id AND return_time IS NULL"
+	
+	rows, err := d.db.Query(sqlSentence, sql.Named("user_id", user.UserId))
+	if err != nil {
+		return nil, 0, 0, errors.WithStack(err)
+	}
+	
+	ret := make([]*model.BorrowBook, 0)
+	for rows.Next() {
+		var one model.BorrowBook
+		if err := rows.Scan(&one.BorrowId, &one.BorrowTime, &one.ShouldReturnTime, &one.ReturnTime,
+			&one.Book.BookId, &one.BookName, &one.BookAuthor, &one.BookPublishedTime, &one.BookUsed,
+			&one.UserId);
+			err != nil {
+			return ret, 0, 0, errors.WithStack(err)
+		}
+		ret = append(ret, &one)
+	}
+	
+	sqlSentence = "SELECT borrow_max FROM library_user WHERE user_id = @user_id"
+	row := d.db.QueryRow(sqlSentence, sql.Named("user_id", user.UserId))
+	
+	var max int
+	if err = row.Scan(&max); err != nil {
+		return ret, 0, 0, errors.WithStack(err)
+	}
+	
+	sqlSentence = "SELECT COUNT(*) FROM borrow WHERE user_id = @user_id AND return_time IS NOT NULL AND should_return_time < return_time"
+	row = d.db.QueryRow(sqlSentence, sql.Named("user_id", user.UserId))
+	
+	var overTime int
+	if err = row.Scan(&overTime); err != nil {
+		return ret, 0, 0, errors.WithStack(err)
+	}
+	return ret, max, overTime, nil
 }
