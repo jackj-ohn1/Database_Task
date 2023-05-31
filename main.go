@@ -8,7 +8,7 @@ import (
 
 func main() {
 	gin.SetMode("debug")
-	db := repository.Init("SA", "Root@123")
+	db := repository.Init("SA", "ptUwS8eg6rp!4S")
 	engine := route.Router(db)
 	engine.Run(":80")
 }
