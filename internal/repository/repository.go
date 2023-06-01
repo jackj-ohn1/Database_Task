@@ -21,6 +21,7 @@ type Database interface {
 	AddBook(book *model.Book) error
 	DeleteBook(book *model.Book) error
 	LendBook(borrow *model.Borrow, borrowDay int) error
+	GetBookId(bookName string) (int, error)
 }
 
 func NewDatabase(db *sql.DB) Database {
@@ -34,5 +35,6 @@ func Init(username, password string) *sql.DB {
 	if err != nil {
 		log.Fatal("数据库连接失败!")
 	}
+	
 	return db
 }

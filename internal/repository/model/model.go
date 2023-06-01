@@ -11,8 +11,23 @@ type Book struct {
 	BookAuthor        string       `json:"book_author,omitempty"`
 	BookPublishedTime sql.NullTime `json:"book_published_time"`
 	BookUsed          bool         `json:"book_used"`
+	BookOut           int          `json:"book_out"`
 	//BookPrice         float32 `json:"book_price,omitempty"`
 	//BookContent       string  `json:"book_content,omitempty"`
+}
+
+type BookSlice []*Book
+
+func (b BookSlice) Len() int {
+	return len(b)
+}
+
+func (b BookSlice) Swap(i, j int) {
+	b[i], b[j] = b[j], b[i]
+}
+
+func (b BookSlice) Less(i, j int) bool {
+	return b[i].BookOut > b[j].BookOut
 }
 
 type User struct {

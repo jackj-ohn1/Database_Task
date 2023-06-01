@@ -7,6 +7,7 @@ import (
 	"control/internal/repository/model"
 	"database/sql"
 	"github.com/gin-gonic/gin"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/pkg/errors"
 	"net/http"
 	"strconv"
@@ -15,12 +16,20 @@ import (
 
 type bookHandler struct {
 	database repository.Database
+	cache    *lru.Cache[int, *model.Book]
+	size     int
+	isNew    bool
 }
 
 func NewBookHandler(db *sql.DB) *bookHandler {
-	return &bookHandler{
-		repository.NewDatabase(db),
+	b := &bookHandler{
+		size:     50,
+		database: repository.NewDatabase(db),
+		isNew:    true,
 	}
+	cache, _ := lru.New[int, *model.Book](b.size)
+	b.cache = cache
+	return b
 }
 
 func (b *bookHandler) GetBooks(c *gin.Context) {
@@ -45,6 +54,26 @@ func (b *bookHandler) GetBooks(c *gin.Context) {
 		return
 	}
 	
+	if !b.isNew {
+		data := make([]*model.Book, 0, limit)
+		keys := b.cache.Keys()
+		for i := (page - 1) * limit; i < page*limit && i < len(keys); i++ {
+			value, ok := b.cache.Get(keys[i])
+			if !ok {
+				continue
+			}
+			data = append(data, value)
+		}
+		
+		resp := &internal.Response{
+			Message: "获取成功",
+			Code:    http.StatusOK,
+			Data:    data,
+		}
+		resp.Success(c)
+		return
+	}
+	
 	data, err := b.database.GetBooks(page, limit)
 	if err != nil {
 		resp := &internal.Response{
@@ -53,6 +82,18 @@ func (b *bookHandler) GetBooks(c *gin.Context) {
 		}
 		resp.InternalError(c, err)
 		return
+	}
+	
+	b.isNew = false
+	if len(data) > b.size {
+		b.cache.Resize(len(data) * 2)
+		b.size = len(data) * 2
+	}
+	
+	var bookSlice model.BookSlice = data
+	
+	for _, v := range bookSlice {
+		b.cache.ContainsOrAdd(v.BookId, v)
 	}
 	
 	resp := &internal.Response{
@@ -108,6 +149,8 @@ func (b *bookHandler) LendBook(c *gin.Context) {
 		resp.InternalError(c, err)
 		return
 	}
+	
+	b.cache.Get(req.BookId)
 	
 	resp := &internal.Response{
 		Message: "操作成功",
@@ -168,6 +211,30 @@ func (b *bookHandler) AddBook(c *gin.Context) {
 		return
 	}
 	
+	id, err := b.database.GetBookId(req.BookName)
+	if err != nil {
+		resp := &internal.Response{
+			Message: err.Error(),
+			Code:    http.StatusInternalServerError,
+		}
+		resp.InternalError(c, err)
+		return
+	}
+	
+	b.cache.ContainsOrAdd(id, &model.Book{
+		BookId:     id,
+		BookName:   req.BookName,
+		BookAuthor: req.BookAuthor,
+		BookPublishedTime: sql.NullTime{
+			Time:  req.BookPublishTime,
+			Valid: true,
+		},
+	})
+	if b.cache.Len() >= b.size {
+		b.cache.Resize(b.size * 2)
+		b.size = b.size * 2
+	}
+	
 	resp := &internal.Response{
 		Message: "添加成功",
 		Code:    http.StatusOK,
@@ -219,6 +286,8 @@ func (b *bookHandler) DeleteBook(c *gin.Context) {
 		resp.InternalError(c, err)
 		return
 	}
+	
+	b.cache.Remove(req.BookId)
 	
 	resp := &internal.Response{
 		Message: "删除成功",

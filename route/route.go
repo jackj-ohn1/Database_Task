@@ -33,6 +33,7 @@ func Router(db *sql.DB) *gin.Engine {
 	userRoute.GET("/borrow", userHandler.UserReservation)
 	
 	adminRoute := baseRoute.Group("/admin")
+	// curl -X POST -H "Content-Type:application/json" localhost:80/api/v1/library/admin/book -d '{"user_id":"2023","book_name":"book1","book_author":"author1"}'
 	adminRoute.POST("/book", bookHandler.AddBook)
 	adminRoute.PUT("/book", bookHandler.DeleteBook)
 	

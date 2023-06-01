@@ -15,7 +15,8 @@ CREATE TABLE book(
 	book_name VARCHAR(100) NOT NULL,
 	book_publish_time DATETIME2 DEFAULT NULL,
 	book_used BIT CONSTRAINT book_status_check CHECK (book_used IN (0,1)) DEFAULT 0,
-	book_author VARCHAR(200) DEFAULT 'unknown'
+	book_author VARCHAR(200) DEFAULT 'unknown',
+	book_out INT DEFAULT 0
 );
 
 -- CREATE TABLE author(
@@ -91,6 +92,9 @@ BEGIN
 	UPDATE library_user SET borrowed_book = borrowed_book + 1
     WHERE user_id IN (SELECT user_id FROM inserted)
     AND borrowed_book < borrow_max;
+	
+	UPDATE book SET book_out = book_out + 1
+    WHERE book_id IN (SELECT book_id FROM inserted);
 END;
 
 CREATE TRIGGER delete_changed_update ON borrow
@@ -101,6 +105,9 @@ BEGIN
 	
 	UPDATE book SET book_used = 0
 	WHERE (SELECT TOP 1 book_id FROM deleted) = book_id;
+	
+	UPDATE library_user SET borrowed_book = borrowed_book - 1
+	WHERE (SELECT TOP 1 user_id FROM deleted) = user_id;
 	
 	-- 还书时间超时,借书最大数量限制-1 --
 	UPDATE library_user SET borrow_max = borrow_max - 1

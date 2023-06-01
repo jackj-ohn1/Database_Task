@@ -9,8 +9,20 @@ import (
 	"time"
 )
 
+func (d *database) GetBookId(bookName string) (int, error) {
+	sqlSentence := "SELECT book_id FROM book WHERE book_name = @book_name"
+	
+	var bookId int
+	row := d.db.QueryRow(sqlSentence, sql.Named("book_name", bookName))
+	if err := row.Scan(&bookId); err != nil {
+		return -1, errors.WithStack(err)
+	}
+	
+	return bookId, nil
+}
+
 func (d *database) GetBooks(page, limit int) ([]*model.Book, error) {
-	sqlSentence := "SELECT book_id,book_name,book_author,book_publish_time,book_used FROM book ORDER BY book_used DESC OFFSET " +
+	sqlSentence := "SELECT book_id,book_name,book_author,book_publish_time,book_used,book_out FROM book ORDER BY book_used DESC OFFSET " +
 		"@offset ROWS FETCH NEXT @limit ROWS ONLY"
 	rows, err := d.db.Query(sqlSentence, sql.Named("offset", (page-1)*limit),
 		sql.Named("limit", limit))
@@ -22,7 +34,7 @@ func (d *database) GetBooks(page, limit int) ([]*model.Book, error) {
 	for rows.Next() {
 		var book model.Book
 		err := rows.Scan(&book.BookId, &book.BookName, &book.BookAuthor,
-			&book.BookPublishedTime, &book.BookUsed)
+			&book.BookPublishedTime, &book.BookUsed, &book.BookOut)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
